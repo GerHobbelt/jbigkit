@@ -10,7 +10,9 @@
 #include <string.h>
 #include <limits.h>
 #include "jbig85.h"
-
+#ifdef __OS2__
+#include <fcntl.h>
+#endif
 
 static const char *progname = NULL;                  /* global pointer to argv[0] */
 
@@ -178,6 +180,13 @@ int main (int argc, const char **argv)
     }
   } else
     fnin  = "<stdin>";
+
+#ifdef __OS2__
+  if (fin == stdin)
+    setmode(fileno(stdin), O_BINARY);
+  if (fout == stdout)
+    setmode(fileno(stdout), O_BINARY);
+#endif
 
   /* read PBM header */
   while ((c = getc(fin)) != EOF && (isspace(c) || c == '#'))
