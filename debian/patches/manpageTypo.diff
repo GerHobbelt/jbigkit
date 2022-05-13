@@ -1,7 +1,14 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Sat, 14 May 2022 00:26:26 +0800
 Subject: Trivial typo
-Author: Michael van der Kolff <mvanderkolff@gmail.com>
-Upstream: yes
+
 Fixes trivial typo in pbmtojbg (keeps lintian quiet(er))
+---
+ pbmtools/pbmtojbg.1 | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/pbmtools/pbmtojbg.1 b/pbmtools/pbmtojbg.1
+index c1c63cd..6d9cd02 100644
 --- a/pbmtools/pbmtojbg.1
 +++ b/pbmtools/pbmtojbg.1
 @@ -130,7 +130,7 @@ encoder.)

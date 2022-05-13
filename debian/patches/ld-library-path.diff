@@ -1,5 +1,14 @@
-Index: b/pbmtools/Makefile
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Sat, 14 May 2022 00:26:26 +0800
+Subject: ld-library-path
+
 ===================================================================
+---
+ pbmtools/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pbmtools/Makefile b/pbmtools/Makefile
+index 7fd13fc..7a93190 100644
 --- a/pbmtools/Makefile
 +++ b/pbmtools/Makefile
 @@ -7,7 +7,7 @@ CC = gcc

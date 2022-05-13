@@ -1,12 +1,18 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Sat, 14 May 2022 00:26:26 +0800
 Subject: Give a proper Makefile for the upstream package
-Author: Michael van der Kolff <mvanderkolff@gmail.com>
-Forwarded: no
 
 Upstream Makefile is barebones, and doesn't make any shared libraries.
 
 With some extra effort, this does.
 
 Refreshed for 2.1
+---
+ Makefile | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 9f7e3ba..3b2fe42 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -4,12 +4,13 @@

@@ -1,6 +1,6 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Sat, 14 May 2022 00:26:26 +0800
 Subject: Correct the Makefile for the binaries build
-Author: Michael van der Kolff <mvanderkolff@gmail.com>
-Forwarded: no
 
 Upstream Makefile is barebones, and doesn't make any shared libraries.
 
@@ -8,6 +8,12 @@ This corrects the pbmtools part (jbig <-> pbm tools) so that they
 use the shared libraries.
 
 Now with hardening!
+---
+ pbmtools/Makefile | 30 +++++++++++++-----------------
+ 1 file changed, 13 insertions(+), 17 deletions(-)
+
+diff --git a/pbmtools/Makefile b/pbmtools/Makefile
+index 6314af8..024231e 100644
 --- a/pbmtools/Makefile
 +++ b/pbmtools/Makefile
 @@ -5,7 +5,9 @@ CC = gcc
@@ -21,7 +27,8 @@ Now with hardening!
  
  .SUFFIXES: .1 .5 .txt $(SUFFIXES)
  .PHONY: txt test test82 test85 clean
-@@ -15,30 +16,22 @@ all: pbmtojbg jbgtopbm pbmtojbg85 jbgtopbm85 txt
+@@ -14,31 +16,23 @@ all: pbmtojbg jbgtopbm pbmtojbg85 jbgtopbm85 txt
+ 
  txt: pbmtojbg.txt jbgtopbm.txt pbm.txt pgm.txt
  
 -pbmtojbg: pbmtojbg.o ../libjbig/libjbig.a
@@ -60,7 +67,7 @@ Now with hardening!
  analyze:
  	clang $(CPPFLAGS) --analyze *.c
  
-@@ -96,6 +89,8 @@ dotest2g:
+@@ -96,6 +90,8 @@ dotest2g:
  	cmp test-$(IMG).pgm ../examples/$(IMG).pgm
  
  test85: pbmtojbg jbgtopbm pbmtojbg85 jbgtopbm85 test-t82.pbm

@@ -1,9 +1,13 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Sat, 14 May 2022 00:26:26 +0800
 Subject: Fix several compiler warnings
-Author: Colin Watson <cjwatson@ubuntu.com>
-Forwarded: no
 
 This patch has some harmless compiler warnings, and one potential truncated file,
 which may potentially do nasty things elsewhere if left unchecked.
+---
+ pbmtools/pbmtojbg.c   | 24 ++++++++++++++++++++----
+ pbmtools/pbmtojbg85.c | 10 ++++++++--
+ 2 files changed, 28 insertions(+), 6 deletions(-)
 
 diff --git a/pbmtools/pbmtojbg.c b/pbmtools/pbmtojbg.c
 index 90c4581..6c74430 100644
