@@ -1,28 +1,30 @@
 # Unix makefile for the JBIG-KIT library
 
 # Select an ANSI/ISO C compiler here, GNU gcc is recommended
-CC = gcc
+CC ?= gcc
 
 # Options for the compiler: A high optimization level is suggested
-CFLAGS = -g -O -W -Wall -ansi -pedantic # --coverage
+CFLAGS ?= -g -O -W -Wall -ansi -pedantic # --coverage
 
-all: libjbig.a libjbig85.a tstcodec tstcodec85
+all: libjbig.a libjbig.so libjbig85.a tstcodec tstcodec85
 
 tstcodec: tstcodec.o jbig.o jbig_ar.o
-	$(CC) $(CFLAGS) -o tstcodec tstcodec.o jbig.o jbig_ar.o
+	$(CC) $(CFLAGS) -o tstcodec tstcodec.o jbig.o jbig_ar.o $(LDFLAGS)
 
 tstcodec85: tstcodec85.o jbig85.o jbig_ar.o
-	$(CC) $(CFLAGS) -o tstcodec85 tstcodec85.o jbig85.o jbig_ar.o
+	$(CC) $(CFLAGS) -o tstcodec85 tstcodec85.o jbig85.o jbig_ar.o $(LDFLAGS)
 
 libjbig.a: jbig.o jbig_ar.o
 	rm -f libjbig.a
-	ar rc libjbig.a jbig.o jbig_ar.o
-	-ranlib libjbig.a
+	$(AR) rcs $@ jbig.o jbig_ar.o
+
+libjbig.so: jbig.o jbig_ar.o jbig85.o
+	$(CC) -shared -Wl,-soname,libjbig.so.0 -o libjbig.so.0 $+ $(LDFLAGS)
+	ln -sf libjbig.so.0 libjbig.so
 
 libjbig85.a: jbig85.o jbig_ar.o
 	rm -f libjbig85.a
-	ar rc libjbig85.a jbig85.o jbig_ar.o
-	-ranlib libjbig85.a
+	$(AR) rcs $@ jbig85.o jbig_ar.o
 
 jbig.o: jbig.c jbig.h jbig_ar.h
 jbig85.o: jbig85.c jbig85.h jbig_ar.h
@@ -51,5 +53,6 @@ t82test.pbm: tstcodec
 
 clean:
 	rm -f *.o *.gcda *.gcno *.gcov *.plist *~ core gmon.out dbg_d\=??.pbm
+	rm -f *.so* *.a *.la
 	rm -f t82test.pbm
 	rm -f tstcodec tstcodec85
