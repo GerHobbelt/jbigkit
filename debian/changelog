@@ -1,3 +1,15 @@
+jbigkit (2.1-ok3) yangtze; urgency=high
+
+  * zfj_h CVE-2017-9937 安全更新：In LibTIFF 4.0.8, there is a memory malloc failure in tif_jbig.c.
+
+ -- huang <hrz@bupt.edu.cn>  Wed, 15 Feb 2023 00:57:02 +0800
+
+jbigkit (2.1-ok2) yangtze; urgency=high
+
+  * update version info
+
+ -- luzhiping <luzhiping@kylinos.cn>  Mon, 22 Aug 2022 13:59:37 +0800
+
 jbigkit (2.1-ok1) yangtze; urgency=high
 
   * Build for openKylin.

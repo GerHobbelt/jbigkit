@@ -4,3 +4,4 @@ unusedResultPedantry.diff
 manpageTypo.diff
 shared-lib.diff
 ld-library-path.diff
+0007-update-debian-changelog.patch
