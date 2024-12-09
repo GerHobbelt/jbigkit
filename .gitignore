@@ -22,9 +22,11 @@ libtool
 ltmain.sh
 missing
 stamp-h1
+test-driver
 m4/
 libjbig/Makefile.in
 libjbig/.libs
+libjbig/.dirstamp
 libjbig/tstcodec
 libjbig/tstcodec85
 pbmtools/Makefile.in
@@ -32,6 +34,14 @@ pbmtools/pbmtojbg
 pbmtools/pbmtojbg85
 pbmtools/jbgtopbm
 pbmtools/jbgtopbm85
+test-suite.log
+test/.libs/
+test/tstcodec
+test/tstcodec.log
+test/tstcodec.trs
+test/tstcodec85
+test/tstcodec85.log
+test/tstcodec85.trs
 *.pc
 *.o
 *.lo
