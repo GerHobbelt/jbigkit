@@ -9,11 +9,6 @@ The latest release of JBIG-KIT can be downloaded from
 
   http://www.cl.cam.ac.uk/~mgk25/jbigkit/
 
-This repo is a cloned version which adds bootstrap.sh to use
-autotools and libtool for shared libraries.
-
-
-
 JBIG-KIT implements a highly effective data compression algorithm for
 bi-level high-resolution images such as fax pages or scanned
 documents.

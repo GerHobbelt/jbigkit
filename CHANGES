@@ -1,13 +1,6 @@
+
 JBIG-KIT revision history
 -------------------------
-
-
-autotoolized fork:
-
-Add autotools files configure.ac and Makefile.am to JBIG-KIT
-which originally comes with bare-bones Makefile to generate
-static libraries only.
-
 
 Changes in version 2.1 (2014-04-08)
 
