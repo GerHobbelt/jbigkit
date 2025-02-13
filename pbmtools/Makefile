@@ -56,9 +56,9 @@ test82: pbmtojbg jbgtopbm
 	make IMG=sandra    "OPTIONSP=-o 2" OPTIONSJ=       dotest2g
 	make IMG=multi      OPTIONSP=      OPTIONSJ=       dotest2g
 	make IMG=multi      OPTIONSP=-b    OPTIONSJ=-b     dotest2g
-	make IMG=mx        "OPTIONSP=-q -s 3 -m 128"       dotest1
-	make IMG=mx        "OPTIONSP=-q -s 3 -m 128"       dotest2b
-	make IMG=mx        "OPTIONSP=-q -s 3 -m 128 -p 92" dotest2b
+	make IMG=mx        "OPTIONSP=-q -s 3 -m 127"       dotest1
+	make IMG=mx        "OPTIONSP=-q -s 3 -m 127"       dotest2b
+	make IMG=mx        "OPTIONSP=-q -s 3 -m 127 -p 92" dotest2b
 	make IMG=mx        "OPTIONSP=-q -Y -1"             dotest2b
 	make IMG=mx        "OPTIONSP=-Y -1"                dotest2b
 	rm -f test-*.jbg test-*.pbm test-*.pgm
