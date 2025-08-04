@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <limits.h>
 #include "jbig85.h"
 
 
@@ -46,17 +47,17 @@ static void usage(void)
 void *checkedmalloc(size_t n)
 {
   void *p;
-  
+
   if ((p = malloc(n)) == NULL) {
     fprintf(stderr, "Sorry, not enough memory available!\n");
     exit(1);
   }
-  
+
   return p;
 }
 
 
-/* 
+/*
  * Read an ASCII integer number from file f and skip any PBM
  * comments which are encountered.
  */
@@ -65,12 +66,16 @@ static unsigned long getint(FILE *f)
   int c;
   unsigned long i;
 
-  while ((c = getc(f)) != EOF && !isdigit(c))
+  while ((c = getc(f)) != EOF)
     if (c == '#')
       while ((c = getc(f)) != EOF && !(c == 13 || c == 10)) ;
-  if (c != EOF) {
-    ungetc(c, f);
-    fscanf(f, "%lu", &i);
+    else if (!isspace(c))
+      break;
+  if (c == EOF) return 0;
+  ungetc(c, f);
+  if (fscanf(f, "%lu", &i) != 1) {
+    fprintf(stderr, "Unsigned integer value expected!\n");
+    exit(1);
   }
 
   return i;
@@ -158,7 +163,7 @@ int main (int argc, char **argv)
 	usage();
       }
   }
-  
+
   /* open input file */
   if (fnin) {
     fin = fopen(fnin, "rb");
@@ -184,15 +189,16 @@ int main (int argc, char **argv)
   fgetc(fin);    /* skip line feed */
 
   /* Test for valid parameters */
-  if (width < 1 || height < 1) {
-    fprintf(stderr, "Image dimensions must be positive!\n");
+  if (width < 1 || height < 1 ||
+      width > 0xffffffff || height > 0xffffffff) {
+    fprintf(stderr, "Invalid width or height!\n");
     exit(1);
   }
 
   /* allocate buffer for a single image line */
   bpl = (width >> 3) + !!(width & 7);     /* bytes per line */
   lines = (unsigned char *) checkedmalloc(bpl * 3);
-  
+
   /* open output file */
   if (fnout) {
     fout = fopen(fnout, "wb");
