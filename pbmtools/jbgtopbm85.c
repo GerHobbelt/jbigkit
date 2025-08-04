@@ -53,6 +53,10 @@ static int line_out(const struct jbg85_dec_state *s,
 }
 
 
+#if defined(BUILD_MONOLITHIC)
+#define main   jbig_jbgtopbm85_main
+#endif
+
 int main (int argc, const char **argv)
 {
   FILE *fin = stdin, *fout = stdout;

@@ -93,6 +93,10 @@ static void data_out(unsigned char *start, size_t len, void *file)
 }
 
 
+#if defined(BUILD_MONOLITHIC)
+#define main   jbig_pbmtojbg85_main
+#endif
+
 int main (int argc, const char **argv)
 {
   FILE *fin = stdin, *fout = stdout;

@@ -278,6 +278,10 @@ static void diagnose_bie(FILE *fin)
 }
 
 
+#if defined(BUILD_MONOLITHIC)
+#define main   jbig_jbgtopbm_main
+#endif
+
 int main (int argc, const char **argv)
 {
   FILE *fin = stdin, *fout = stdout;

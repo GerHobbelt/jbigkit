@@ -19,10 +19,10 @@
 #define FAILED "F\bFA\bAI\bIL\bLE\bED\bD"
 #define PASSED "PASSED"
 
-unsigned char *testbuf;
-unsigned char *testpic;
+static unsigned char *testbuf = NULL;
+static unsigned char *testpic = NULL;
 
-long testbuf_len;
+static long testbuf_len = 0;
 
 
 static void *checkedmalloc(size_t n)
@@ -230,7 +230,11 @@ static int test_cycle(unsigned char **orig_image, int width, int height,
 }
 
 
-int main(int argc, char **argv)
+#if defined(BUILD_MONOLITHIC)
+#define main   jbig_tstcodec_main
+#endif
+
+int main(int argc, const char **argv)
 {
   int trouble, problems = 0;
   struct jbg_arenc_state *se;
