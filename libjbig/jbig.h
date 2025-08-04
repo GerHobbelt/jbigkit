@@ -230,4 +230,8 @@ void jbg_split_planes(unsigned long x, unsigned long y, int has_planes,
 		      int use_graycode);
 int jbg_newlen(unsigned char *bie, size_t len);
 
+// internal use:
+extern unsigned char *jbg_next_pscdms(unsigned char *p, size_t len);
+extern unsigned long jbg_stripes(unsigned long l0, unsigned long yd, unsigned long d);
+
 #endif /* JBG_H */

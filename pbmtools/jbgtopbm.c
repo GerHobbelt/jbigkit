@@ -10,7 +10,7 @@
 #include <limits.h>
 #include "jbig.h"
 
-char *progname;                  /* global pointer to argv[0] */
+static const char *progname = NULL;                  /* global pointer to argv[0] */
 
 
 /*
@@ -38,7 +38,7 @@ static void usage(void)
 /*
  * Call-back routine for merged image output
  */
-void write_it(unsigned char *data, size_t len, void *file)
+static void write_it(unsigned char *data, size_t len, void *file)
 {
   fwrite(data, len, 1, (FILE *) file);
 }
@@ -47,7 +47,7 @@ void write_it(unsigned char *data, size_t len, void *file)
  * Remalloc a buffer and append a file f into its content.
  * If *buflen == 0, then malloc a buffer first.
  */
-void read_file(unsigned char **buf, size_t *buflen, size_t *len, FILE *f)
+static void read_file(unsigned char **buf, size_t *buflen, size_t *len, FILE *f)
 {
   if (*buflen == 0) {
     *buflen = 4000;
@@ -99,7 +99,7 @@ void read_file(unsigned char **buf, size_t *buflen, size_t *len, FILE *f)
  * Output (prefix of) a short byte sequence in hexadecimal
  * for diagnostic purposes
  */
-void fprint_bytes(FILE *f, unsigned char *p, size_t len, int width)
+static void fprint_bytes(FILE *f, unsigned char *p, size_t len, int width)
 {
   size_t i;
   size_t max = width / 3;
@@ -115,16 +115,13 @@ void fprint_bytes(FILE *f, unsigned char *p, size_t len, int width)
 /*
  * Read BIE and output human readable description of content
  */
-void diagnose_bie(FILE *fin)
+static void diagnose_bie(FILE *fin)
 {
   unsigned char *bie, *p, *pnext;
   size_t buflen = 0, len;
   unsigned long xd, yd, l0;
   int dl, d;
   FILE *f = stdout;
-  extern unsigned char *jbg_next_pscdms(unsigned char *p, size_t len);
-  extern unsigned long jbg_stripes(unsigned long l0, unsigned long yd,
-				   unsigned long d);
   unsigned long stripes;
   int layers, planes;
   unsigned long sdes, sde = 0;
@@ -273,7 +270,7 @@ void diagnose_bie(FILE *fin)
 }
 
 
-int main (int argc, char **argv)
+int main (int argc, const char **argv)
 {
   FILE *fin = stdin, *fout = stdout;
   const char *fnin = NULL, *fnout = NULL;
