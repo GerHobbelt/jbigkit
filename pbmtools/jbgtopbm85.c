@@ -10,11 +10,11 @@
 #include <limits.h>
 #include "jbig85.h"
 
-char *progname;                  /* global pointer to argv[0] */
-unsigned long y_0;
-fpos_t ypos;
-int ypos_error = 1;
-unsigned long ymax = 0;
+static const char *progname = NULL;                  /* global pointer to argv[0] */
+static unsigned long y_0;
+static fpos_t ypos;
+static int ypos_error = 1;
+static unsigned long ymax = 0;
 
 /*
  * Print usage message and abort
@@ -36,7 +36,7 @@ static void usage(void)
 /*
  * Call-back routine for merged image output
  */
-int line_out(const struct jbg85_dec_state *s,
+static int line_out(const struct jbg85_dec_state *s,
 	     unsigned char *start, size_t len, unsigned long y, void *file)
 {
   if (y == 0) {
@@ -53,7 +53,7 @@ int line_out(const struct jbg85_dec_state *s,
 }
 
 
-int main (int argc, char **argv)
+int main (int argc, const char **argv)
 {
   FILE *fin = stdin, *fout = stdout;
   const char *fnin = NULL, *fnout = NULL;

@@ -12,8 +12,8 @@
 #include "jbig.h"
 
 
-char *progname;                  /* global pointer to argv[0] */
-unsigned long total_length = 0;  /* used for determining output file length */
+static const char *progname = NULL;                  /* global pointer to argv[0] */
+static unsigned long total_length = 0;  /* used for determining output file length */
 
 
 /*
@@ -60,7 +60,7 @@ static void usage(void)
 /*
  * malloc() with exception handler
  */
-void *checkedmalloc(size_t n)
+static void *checkedmalloc(size_t n)
 {
   void *p;
 
@@ -110,7 +110,7 @@ static void data_out(unsigned char *start, size_t len, void *file)
 }
 
 
-int main (int argc, char **argv)
+int main (int argc, const char **argv)
 {
   FILE *fin = stdin, *fout = stdout;
   const char *fnin = NULL, *fnout = NULL;
@@ -128,7 +128,7 @@ int main (int argc, char **argv)
   long mwidth = 640, mheight = 480;
   int dl = -1, dh = -1, d = -1, mx = -1;
   unsigned long l0 = 0, y1 = 0;
-  char *comment = NULL;
+  const char *comment = NULL;
   int options = JBG_TPDON | JBG_TPBON | JBG_DPON;
   int order = JBG_ILEAVE | JBG_SMID;
 

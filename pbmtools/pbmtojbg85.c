@@ -12,7 +12,7 @@
 #include "jbig85.h"
 
 
-char *progname;                  /* global pointer to argv[0] */
+static const char *progname = NULL;                  /* global pointer to argv[0] */
 
 
 /*
@@ -44,7 +44,7 @@ static void usage(void)
 /*
  * malloc() with exception handler
  */
-void *checkedmalloc(size_t n)
+static void *checkedmalloc(size_t n)
 {
   void *p;
 
@@ -93,7 +93,7 @@ static void data_out(unsigned char *start, size_t len, void *file)
 }
 
 
-int main (int argc, char **argv)
+int main (int argc, const char **argv)
 {
   FILE *fin = stdin, *fout = stdout;
   const char *fnin = NULL, *fnout = NULL;
@@ -108,7 +108,7 @@ int main (int argc, char **argv)
   struct jbg85_enc_state s;
   int mx = -1;
   unsigned long l0 = 0, yi = 0, yr = 0;
-  char *comment = NULL;
+  const char *comment = NULL;
   int options = JBG_TPBON;
 
   /* parse command line arguments */
