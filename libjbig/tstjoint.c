@@ -8,7 +8,7 @@
 #include "jbig.h"
 #include "jbig85.h"
 
-int main()
+int main(void)
 {
   return 0;
 }
