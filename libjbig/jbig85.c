@@ -39,6 +39,10 @@
 
 #include "jbig85.h"
 
+extern unsigned short lsztab[];
+extern unsigned char nmpstab[];
+extern unsigned char nlpstab[];
+
 #define TPB2CX  0x195  /* contexts for TP special pixels */
 #define TPB3CX  0x0e5
 
@@ -184,10 +188,16 @@ void jbg85_enc_lineout(struct jbg85_enc_state *s, unsigned char *line,
   unsigned long line_h1 = 0, line_h2, line_h3;
   unsigned long j;  /* loop variable for pixel column */
   long o;
-  unsigned a, p, t;
-  int ltp;
+  unsigned a, p, t, t_start;
+  int ltp, ctx, ctx_old, pix;
   unsigned long cmin, cmax, clmin, clmax;
   int tmax;
+  unsigned int lsz, ss, bitnum;
+  unsigned char *st, ss_new;
+  long temp;
+  // local copy of struct variables to allow compiler to optimize better
+  unsigned int s_c, s_ct, s_sc;
+  unsigned long s_a;
 #ifdef DEBUG
   static long tp_lines;
   static long encoded_pixels;
@@ -310,6 +320,12 @@ void jbg85_enc_lineout(struct jbg85_enc_state *s, unsigned char *line,
     s->ltp_old = ltp;
   }
 
+  // Get struct members into local variables
+  s_a = s->s.a;
+  s_c = s->s.c;
+  s_ct = s->s.ct;
+  s_sc = s->s.sc;
+
   if (!ltp) {
 
     /*
@@ -330,109 +346,197 @@ void jbg85_enc_lineout(struct jbg85_enc_state *s, unsigned char *line,
     if (hp2) line_h2 = (long)*hp2 << 8;
     if (hp3) line_h3 = (long)*hp3 << 8;
 
+    ctx_old = -1;
+
     /* encode line */
     for (j = 0; j < s->x0;) {
-      line_h1 |= *hp1;
+      bitnum = 8;
+      if (j + bitnum > s->x0) bitnum = (s->x0 & 7);
+      line_h1 |= *(hp1++);
       if (j < bpl * 8 - 8 && hp2) {
-	line_h2 |= *(hp2 + 1);
+	line_h2 |= *(++hp2);
 	if (hp3)
-	  line_h3 |= *(hp3 + 1);
+	  line_h3 |= *(++hp3);
       }
-      if (s->options & JBG_LRLTWO) {
-	/* two line template */
-	do {
-	  line_h1 <<= 1;  line_h2 <<= 1;  line_h3 <<= 1;
+      /* two line template */
+      do {
+	bitnum--;
+	/* line_h1 <<= 1; */ line_h2 <<= 1;  line_h3 <<= 1;
+	if (s->options & JBG_LRLTWO) {
+	  t_start = 5;
 	  if (s->tx) {
 	    if ((unsigned) s->tx > j)
 	      a = 0;
 	    else {
 	      o = (j - s->tx) - (j & ~7L);
-	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
+	      a = (hp1[(o >> 3)-1] >> (7 - (o & 7))) & 1;
 	      a <<= 4;
 	    }
 	    assert(s->tx > 23 ||
-		   a == ((line_h1 >> (4 + s->tx)) & 0x010));
-	    arith_encode(&s->s, (((line_h2 >> 10) & 0x3e0) | a |
-				 ((line_h1 >>  9) & 0x00f)),
-			 (line_h1 >> 8) & 1);
+		   a == ((line_h1 >> (3 + s->tx)) & 0x010));
+	    ctx = (((line_h2 >> 10) & 0x3e0) | a | ((line_h1 >> 8) & 0x00f));
+	  } else {
+	    ctx = (((line_h2 >> 10) & 0x3f0) | ((line_h1 >> 8) & 0x00f));
 	  }
-	  else
-	    arith_encode(&s->s, (((line_h2 >> 10) & 0x3f0) |
-				 ((line_h1 >>  9) & 0x00f)),
-			 (line_h1 >> 8) & 1);
-#ifdef DEBUG
-	  encoded_pixels++;
-#endif
-	  /* statistics for adaptive template changes */
-	  if (s->new_tx == -1 && j >= s->mx && j < s->x0 - 2) {
-	    p = (line_h1 & 0x100) != 0; /* current pixel value */
-	    s->c[0] += ((line_h2 & 0x4000) != 0) == p; /* default position */
-	    assert(!(((line_h2 >> 6) ^ line_h1) & 0x100) ==
-		   (((line_h2 & 0x4000) != 0) == p));
-	    for (t = 5; t <= s->mx && t <= j; t++) {
-	      o = (j - t) - (j & ~7L);
-	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
-	      assert(t > 23 ||
-		     (a == p) == !(((line_h1 >> t) ^ line_h1) & 0x100));
-	      s->c[t] += a == p;
-	    }
-	    for (; t <= s->mx; t++) {
-	      s->c[t] += 0 == p;
-	    }
-	    ++s->c_all;
-	  }
-	} while (++j & 7 && j < s->x0);
-      } else {
-	/* three line template */
-	do {
-	  line_h1 <<= 1;  line_h2 <<= 1;  line_h3 <<= 1;
+	} // 2-line
+	else { // 3-line
 	  if (s->tx) {
 	    if ((unsigned) s->tx > j)
 	      a = 0;
 	    else {
 	      o = (j - s->tx) - (j & ~7L);
-	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
+	      a = (hp1[(o >> 3)-1] >> (7 - (o & 7))) & 1;
 	      a <<= 2;
 	    }
 	    assert(s->tx > 23 ||
-		   a == ((line_h1 >> (6 + s->tx)) & 0x004));
-	    arith_encode(&s->s, (((line_h3 >>  8) & 0x380) |
-				 ((line_h2 >> 12) & 0x078) | a |
-				 ((line_h1 >>  9) & 0x003)),
-			 (line_h1 >> 8) & 1);
-	  } else
-	    arith_encode(&s->s, (((line_h3 >>  8) & 0x380) |
-				 ((line_h2 >> 12) & 0x07c) |
-				 ((line_h1 >>  9) & 0x003)),
-			 (line_h1 >> 8) & 1);
-#ifdef DEBUG
-	  encoded_pixels++;
-#endif
-	  /* statistics for adaptive template changes */
-	  if (s->new_tx == -1 && j >= s->mx && j < s->x0 - 2) {
-	    p = (line_h1 & 0x100) != 0; /* current pixel value */
-	    s->c[0] += ((line_h2 & 0x4000) != 0) == p; /* default position */
-	    assert(!(((line_h2 >> 6) ^ line_h1) & 0x100) ==
-		   (((line_h2 & 0x4000) != 0) == p));
-	    for (t = 3; t <= s->mx && t <= j; t++) {
-	      o = (j - t) - (j & ~7L);
-	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
-	      assert(t > 23 ||
-		     (a == p) == !(((line_h1 >> t) ^ line_h1) & 0x100));
-	      s->c[t] += a == p;
-	    }
-	    for (; t <= s->mx; t++) {
-	      s->c[t] += 0 == p;
-	    }
-	    ++s->c_all;
+		   a == ((line_h1 >> (5 + s->tx)) & 0x004));
+	    ctx = (((line_h3 >> 8) & 0x380) | ((line_h2 >> 12) & 0x078) | a | ((line_h1 >> 8) & 0x003));
+	  } else {
+	    ctx = (((line_h3 >> 8) & 0x380) | ((line_h2 >> 12) & 0x07c) | ((line_h1 >> 8) & 0x003));
 	  }
-	} while (++j & 7 && j < s->x0);
-      } /* if (s->options & JBG_LRLTWO) */
-      hp1++;
-      if (hp2) hp2++;
-      if (hp3) hp3++;
+	}
+	//	  arith_encode(&s->s, ctx, (line_h1 >> 8) & 1);
+	pix = line_h1 & 0x80;
+	line_h1 <<= 1;
+
+	if (ctx != ctx_old) {
+	  ctx_old = ctx;
+#ifdef DEBUG
+	  assert(ctx >= 0 && ctx < 4096);
+#endif
+	  st = s->s.st + ctx;
+	  ss = *st; // &0x7f;
+#ifdef DEBUG
+	  assert((ss & 0x7f) < 113);
+#endif
+	  lsz = lsztab[ss];
+	}
+#if 0
+	fprintf(stderr, "pix = %d, cx = %d, mps = %d, st = %3d, lsz = 0x%04x, "
+		"a = 0x%05lx, c = 0x%08lx, ct = %2d, buf = 0x%02x\n",
+		pix, cx, !!(s->st[cx] & 0x80), ss, lsz, s->a, s->c, s->ct,
+		s->buffer);
+#endif
+	s_a -= lsz;
+	if ((pix ^ ss) & 0x80) {
+	  /* encode the less probable symbol */
+	  if (s_a >= lsz) {
+	    /* If the interval size (lsz) for the less probable symbol (LPS)
+	     * is larger than the interval size for the MPS, then exchange
+	     * the two symbols for coding efficiency, otherwise code the LPS
+	     * as usual: */
+	    s_c += s_a;
+	    s_a = lsz;
+	  }
+	  /* Check whether MPS/LPS exchange is necessary
+	   * and chose next probability estimator status */
+	  ss_new = ss & 0x80;
+	  ss_new ^= nlpstab[ss];
+	} else {
+	  /* encode the more probable symbol */
+	  if (s_a >= 0x8000) {
+	    if (line_h1 == 0 && line_h2 == 0 && line_h3 == 0) {
+	      // try to accelerate a few pixels
+	      if ((s_a - 0x8000) >= lsz) {
+		unsigned int leftover = (s_a - 0x8000) / lsz; // how many can we skip?
+		if (leftover > bitnum) leftover = bitnum; // maximum we can safely skip
+		bitnum -= leftover;
+		j += leftover;
+		line_h1 <<= leftover;
+		line_h2 <<= leftover;
+		line_h3 <<= leftover;
+		s_a -= (lsz * leftover);
+	      }
+	    }
+	    goto arith_encode_bottom; // return;   /* A >= 0x8000 -> ready, no renormalization required */
+	  }
+	  if (s_a < lsz) {
+	    /* If the interval size (lsz) for the less probable symbol (LPS)
+	     * is larger than the interval size for the MPS, then exchange
+	     * the two symbols for coding efficiency: */
+	    s_c += s_a;
+	    s_a = lsz;
+	  }
+	  /* chose next probability estimator status */
+	  ss_new = ss & 0x80;
+	  ss_new |= nmpstab[ss];
+	}
+	if (ss_new != ss) {
+	  *st = ss_new;
+	  ctx_old = -1; // the statistic table values changed, need to reload ss
+	}
+	/* renormalization of coding interval */
+	do {
+	  s_a <<= 1;
+	  s_c <<= 1;
+	  --s_ct;
+	  if (s_ct == 0) {
+	    /* another byte is ready for output */
+	    temp = s_c >> 19;
+	    if (temp & 0xffffff00L) {
+	      /* handle overflow over all buffered 0xff bytes */
+	      if (s->s.buffer >= 0) {
+		++s->s.buffer;
+		s->s.byte_out(s->s.buffer, s->s.file);
+		if (s->s.buffer == MARKER_ESC)
+		  s->s.byte_out(MARKER_STUFF, s->s.file);
+	      }
+	      for (; s_sc; --s_sc)
+		s->s.byte_out(0x00, s->s.file);
+	      s->s.buffer = temp & 0xff;  /* new output byte, might overflow later */
+	      assert(s->s.buffer != 0xff);
+	      /* can s->buffer really never become 0xff here? */
+	    } else if (temp == 0xff) {
+	      /* buffer 0xff byte (which might overflow later) */
+	      ++s_sc;
+	    } else {
+	      /* output all buffered 0xff bytes, they will not overflow any more */
+	      if (s->s.buffer >= 0)
+		s->s.byte_out(s->s.buffer, s->s.file);
+	      for (; s_sc; --s_sc) {
+		s->s.byte_out(0xff, s->s.file);
+		s->s.byte_out(MARKER_STUFF, s->s.file);
+	      }
+	      s->s.buffer = temp;   /* buffer new output byte (can still overflow) */
+	    }
+	    s_c &= 0x7ffffL;
+	    s_ct = 8;
+	  }
+	} while (s_a < 0x8000);
+
+      arith_encode_bottom:
+#ifdef DEBUG
+	encoded_pixels++;
+#endif
+	/* statistics for adaptive template changes */
+	if (s->new_tx == -1 && j >= s->mx && j < s->x0 - 2) {
+	  p = (line_h1 & 0x100) != 0; /* current pixel value */
+	  s->c[0] += ((line_h2 & 0x4000) != 0) == p; /* default position */
+	  assert(!(((line_h2 >> 6) ^ line_h1) & 0x100) ==
+		 (((line_h2 & 0x4000) != 0) == p));
+	  for (t = t_start; t <= s->mx && t <= j; t++) {
+	    o = (j - t) - (j & ~7L);
+	    a = (hp1[(o >> 3)-1] >> (7 - (o & 7))) & 1;
+	    assert(t > 23 ||
+		   (a == p) == !(((line_h1 >> t) ^ line_h1) & 0x100));
+	    s->c[t] += a == p;
+	  }
+	  for (; t <= s->mx; t++) {
+	    s->c[t] += 0 == p;
+	  }
+	  ++s->c_all;
+	}
+	j++;
+      } while (bitnum > 0);
     } /* for (j = ...) */
   } /* if (!ltp) */
+
+  // Replace the member vars
+  s->s.a = s_a;
+  s->s.c = s_c;
+  s->s.ct = s_ct;
+  s->s.sc = s_sc;
+
 
   /* line is complete now, deal with end of stripe */
   s->i++; s->y++;
@@ -598,18 +702,43 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
 			  size_t len)
 {
   unsigned char *hp1, *hp2, *hp3, *p1;
-  register unsigned long line_h1, line_h2, line_h3;
+  unsigned long line_h1, line_h2, line_h3;
   unsigned long x;
   long o;
   unsigned a;
-  int n;
+  int n, ctx, ctx_old;
   int pix, slntp;
-  int buflines = 3 - !!(s->options & JBG_LRLTWO);
+  unsigned int bitcount; // number of bits/pixels to work on in the current byte
+  // local copies of "s" structure to allow more efficient code
+  unsigned int s_a, s_c;
+  const unsigned int s_x0 = s->x0;
+  unsigned int lsz = 0;
+  unsigned int ss = 0;
+  unsigned char *st;
+  unsigned int line_h2h3;
+  int s_ct;
+  unsigned char *s_st, *s_pscd_ptr, *s_pscd_end;
 
+  int buflines = 3 - !!(s->options & JBG_LRLTWO);
   /* forward data to arithmetic decoder */
   s->s.pscd_ptr = data;
   s->s.pscd_end = data + len;
-
+  if (s->s.startup) {
+    // prepare startup outside of the main loop
+    unsigned char c;
+    s->s.startup = 0;
+    s->s.a = 0x10000;
+    s->s.ct = 8;
+    c = *(s->s.pscd_ptr++);
+    if (c == 0xff) s->s.pscd_ptr++; // skip stuffed byte
+    s->s.c = c << 24;
+    c = *(s->s.pscd_ptr++);
+    if (c == 0xff) s->s.pscd_ptr++; // skip stuffed byte
+    s->s.c |= c << 16;
+    c = *(s->s.pscd_ptr++);
+    if (c == 0xff) s->s.pscd_ptr++; // skip stuffed byte
+    s->s.c |= c << 8;
+  }
   /* restore a few local variables */
   line_h1 = s->line_h1;
   line_h2 = s->line_h2;
@@ -679,25 +808,49 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
      */
 
     if (x == 0) {
+      ctx_old = -1;
       line_h1 = line_h2 = line_h3 = 0;
-      if (s->p[1] >= 0)
-	line_h2 = (long)*hp2 << 8;
-      if (s->p[2] >= 0)
+      if (s->p[1] >= 0) {
+	line_h2 = (long) *hp2 << 8;
+      } else {
+	hp2 = NULL;
+      }
+      if (s->p[2] >= 0) {
+	line_h3 <<= 8;
 	line_h3 = (long)*hp3 << 8;
+      } else {
+	hp3 = NULL;
+      }
     }
 
+    s_a = s->s.a;
+    s_c = s->s.c;
+    s_ct = s->s.ct;
+    s_st = s->s.st;
+    s_pscd_ptr = s->s.pscd_ptr;
+    s_pscd_end = s->s.pscd_end;
+
     /* decode line */
-    while (x < s->x0) {
+    while (x < s_x0) {
       if ((x & 7) == 0) {
-	if (x < (s->bpl - 1) * 8 && s->p[1] >= 0) {
-	  line_h2 |= *(hp2 + 1);
-	  if (s->p[2] >= 0)
-	    line_h3 |= *(hp3 + 1);
+	bitcount = 8;
+	if (x + 8 > s_x0) {
+	  bitcount = (s_x0 & 7);
 	}
+	if (x < (s_x0 - bitcount) && hp2) {
+	  line_h2 |= *(++hp2);
+	  if (hp3) {
+	    line_h3 |= *(++hp3);
+	  }
+	}
+	line_h2h3 = (line_h2 >> 4) & 0x3fff; // no need to calculate this 8 times for each byte of image
+	line_h2h3 |= (line_h3 << 15); // pre-calculate part of the context to save time in the inner loop
+	line_h2h3 &= 0xffc03ffc; // make it easier to compare for repeating pixels
       }
-      if (s->options & JBG_LRLTWO) {
-	/* two line template */
-	do {
+      do {
+	bitcount--;
+	if (s->options & JBG_LRLTWO) {
+	  /* two line template */
 	  if (s->tx) {
 	    if ((unsigned) s->tx > x)
 	      a = 0;
@@ -708,21 +861,15 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
 	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
 	      a <<= 4;
 	    }
-	    assert(s->tx > 31 ||
-		   a == ((line_h1 >> (s->tx - 5)) & 0x010));
-	    pix = arith_decode(&s->s, (((line_h2 >> 9) & 0x3e0) | a |
-				       (line_h1 & 0x00f)));
-	  } else
-	    pix = arith_decode(&s->s, (((line_h2 >> 9) & 0x3f0) |
-				       (line_h1 & 0x00f)));
-	  if (pix < 0)
-	    goto leave;
-	  line_h1 = (line_h1 << 1) | pix;
-	  line_h2 <<= 1;
-	} while ((++x & 7) && x < s->x0);
-      } else {
-	/* three line template */
-	do {
+#ifdef DEBUG
+	    assert(s->tx > 31 || a == ((line_h1 >> (s->tx - 5)) & 0x010));
+#endif
+            ctx = (((line_h2 >> (bitcount+2)) & 0x3e0) | a | (line_h1 & 0x00f));
+	  } else {
+	    ctx = (((line_h2 >> (bitcount+2)) & 0x3f0) | (line_h1 & 0x00f));
+	  }
+	} else {
+	  /* three line template */
 	  if (s->tx) {
 	    if ((unsigned) s->tx > x)
 	      a = 0;
@@ -733,26 +880,153 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
 	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
 	      a <<= 2;
 	    }
-	    assert(s->tx > 31 ||
-		   a == ((line_h1 >> (s->tx - 3)) & 0x004));
-	    pix = arith_decode(&s->s, (((line_h3 >>  7) & 0x380) |
-				       ((line_h2 >> 11) & 0x078) | a |
-				       (line_h1 & 0x003)));
-	  } else
-	    pix = arith_decode(&s->s, (((line_h3 >>  7) & 0x380) |
-				       ((line_h2 >> 11) & 0x07c) |
-				       (line_h1 & 0x003)));
-	  if (pix < 0)
-	    goto leave;
-	  line_h1 = (line_h1 << 1) | pix;
-	  line_h2 <<= 1;
-	  line_h3 <<= 1;
-	} while ((++x & 7) && x < s->x0);
-      } /* if (s->options & JBG_LRLTWO) */
-      *hp1++ = line_h1;
-      hp2++;
-      hp3++;
+#ifdef DEBUG
+	    assert(s->tx > 31 || a == ((line_h1 >> (s->tx - 3)) & 0x004));
+#endif
+            ctx = (((line_h3 >>  bitcount) & 0x380) | ((line_h2h3 >> bitcount) & 0x078) | a | (line_h1 & 0x003));
+	  }
+	  else
+	    //  ctx = (((line_h3 >>  bitcount) & 0x380) | ((line_h2h3 >> bitcount) & 0x07c) | (line_h1 & 0x003));
+	    ctx = ((line_h2h3 >> bitcount) & 0x7c) | ((line_h2h3 >> (bitcount + 15)) & 0x380) | (line_h1 & 0x3);
+	}
+	line_h1 <<= 1;
+	if (ctx != ctx_old) {
+	  st = s_st + ctx;
+	  ctx_old = ctx;
+	  ss = *st;// &0x7f;
+#ifdef DEBUG
+	  assert((ss & 0x7f) < 113);
+#endif
+	  lsz = lsztab[ss];
+	}
+	/* renormalization */
+	while (s_a < 0x8000) {
+	  while (s_ct <= 8 && s_ct >= 0) {
+	    /* first we can move a new byte into s->c */
+	    if (s_pscd_ptr >= s_pscd_end) {
+	      return -1;  /* more bytes needed */
+	    }
+	    if (*s_pscd_ptr == 0xff)
+	      if (s_pscd_ptr + 1 >= s_pscd_end) {
+		return -1; /* final 0xff byte not processed */
+	      } else {
+		if (*(s_pscd_ptr + 1) == MARKER_STUFF) {
+		  s_c |= 0xffL << (8 - s_ct);
+		  s_ct += 8;
+		  s_pscd_ptr += 2;
+		} else {
+		  s_ct = -1; /* start padding with zero bytes */
+		  if (s->s.nopadding) {
+		    s->s.nopadding = 0;
+		    return -2; /* subsequent symbols might depend on zero padding */
+		  }
+		}
+	      } else {
+	      s_c |= (long)*(s_pscd_ptr++) << (8 - s_ct);
+	      s_ct += 8;
+	    }
+	  }
+	  s_c <<= 1;
+	  s_a <<= 1;
+	  if (s_ct >= 0) s_ct--;
+	}
+
+#if 0
+	fprintf(stderr, "cx = %d, mps = %d, st = %3d, lsz = 0x%04x, a = 0x%05lx, "
+		"c = 0x%08lx, ct = %2d\n",
+		cx, !!(s->st[cx] & 0x80), ss, lsz, s->a, s->c, s->ct);
+#endif
+
+	s_a -= lsz;
+	if ((s_c >> 16) < s_a) {
+	  if (s_a >= 0x8000) { // ARM likes constants that fit in 8 shifted bits
+	    unsigned int leftover;
+	    pix = ss >> 7;
+	    // This is the 'money shot'. If we're here with a bunch of
+	    // the same pixels ahead, we can just slide along with the
+	    // same model and count down the s_a variable without
+	    // touching anything else.
+	    leftover = ((line_h1 & 0x6) << 13) | line_h2h3;
+	    if (leftover == 0 || leftover == 0xffc0fffc) // clear sailing ahead (constant context)?
+	      {
+		if ((s_c >> 16) < 0x8000)
+		  leftover = (signed int) (s_a - 0x8000) / lsz; // how much runway?
+		else
+		  leftover = (signed int) (s_a - (s_c >> 16)) / lsz;
+		if (leftover > 1) // Can we 'skip' a few repeating pixels?
+		  {
+		    leftover--; // one more pixel causes trouble, stay safe
+		    if (leftover > bitcount) leftover = bitcount;
+		    bitcount -= leftover;
+		    line_h1 <<= leftover;
+		    line_h1 |= (line_h2h3 >> (31 - leftover)); // set the skipped pixels as a group
+		    s_a -= (leftover * lsz); // Boom! we just produced N blank pixels
+		  }
+	      }
+	  }
+	  else {
+	    unsigned char ss_new = (ss & 0x80);
+	    /* MPS_EXCHANGE */
+	    if (s_a < lsz) {
+	      pix = 1 - (ss >> 7);
+	      /* Check whether MPS/LPS exchange is necessary
+	       * and choose next probability estimator status */
+	      ss_new ^= nlpstab[ss];
+	    }
+	    else {
+	      pix = ss >> 7;
+	      ss_new |= nmpstab[ss];
+	    }
+	    if (ss_new != ss)
+	      {
+		ctx_old = -1;
+		*st = ss_new;
+	      }
+	  }
+	} else {
+	  unsigned char ss_new = (ss & 0x80);
+	  s_c -= s_a << 16;
+	  /* LPS_EXCHANGE */
+	  if (s_a < lsz) {
+	    pix = ss >> 7;
+	    ss_new |= nmpstab[ss];
+	  } else {
+	    pix = 1 - (ss >> 7);
+	    /* Check whether MPS/LPS exchange is necessary
+	     * and chose next probability estimator status */
+	    ss_new ^= nlpstab[ss];
+	  }
+	  s_a = lsz;
+	  if (ss_new != ss) {
+	    ctx_old = -1; // stats for this context may have changed; force a reload
+	    *st = ss_new;
+	  }
+	}
+
+
+
+	//	  if (pix < 0)
+	//	    goto leave;
+	line_h1 |= pix;
+	//	  line_h1 = (line_h1 << 1) | pix;
+	//	  line_h2 <<= 1;
+	//	  line_h3 <<= 1;
+      } while (bitcount > 0); //while ((++x & 7) && x < s_x0);
+      //     } /* if (s->options & JBG_LRLTWO) */
+      line_h2 <<= 8;
+      line_h3 <<= 8;
+      x += 8;
+      *hp1++ = (unsigned char)line_h1;
+      //     hp2++;
+      //     hp3++;
     } /* while (x < s->x0) */
+    // put the local copy variables back into the original structure
+    s->s.a = s_a;
+    s->s.c = s_c;
+    s->s.ct = s_ct;
+    s->s.pscd_ptr = s_pscd_ptr;
+    s->s.pscd_end = s_pscd_end;
+
     *(hp1 - 1) <<= s->bpl * 8 - s->x0;
     s->intr = s->line_out(s, s->linebuf + s->p[0] * s->bpl,
 			  s->bpl, s->y, s->file);
@@ -900,7 +1174,7 @@ int jbg85_dec_in(struct jbg85_dec_state *s, unsigned char *data, size_t len,
 	*cnt += s->comment_skip;
 	s->comment_skip = 0;
       } else {
-	s->comment_skip -= len - *cnt;
+	s->comment_skip -= (unsigned long)(len - *cnt);
 	*cnt = len;
       }
       continue;
