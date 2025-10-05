@@ -364,7 +364,7 @@ static void jbg_buf_output(struct jbg_buf **head,
 unsigned long jbg_ceil_half(unsigned long x, int n)
 {
   assert(n >= 0 && n < 32);
-  return (x >> n) + ((x << (sizeof(x) * 8 - n)) != 0);
+  return (x >> n) + ((x << (sizeof(x) * 8 - n) /* the lowest n bits are 1 here */ ) != 0);
 }
 
 
