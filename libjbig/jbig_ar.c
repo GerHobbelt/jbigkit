@@ -416,9 +416,7 @@ int arith_decode(struct jbg_ardec_state *s, int cx)
 
   st = s->st + cx;
   ss = *st & 0x7f;
-#ifdef DEBUG
   assert(ss < 113);
-#endif
   lsz = lsztab[ss];
 
 #if 0

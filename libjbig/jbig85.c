@@ -401,14 +401,10 @@ void jbg85_enc_lineout(struct jbg85_enc_state *s, unsigned char *line,
 
 	if (ctx != ctx_old) {
 	  ctx_old = ctx;
-#ifdef DEBUG
 	  assert(ctx >= 0 && ctx < 4096);
-#endif
 	  st = s->s.st + ctx;
 	  ss = *st; // &0x7f;
-#ifdef DEBUG
 	  assert((ss & 0x7f) < 113);
-#endif
 	  lsz = lsztab[ss];
 	}
 #if 0
@@ -861,9 +857,7 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
 	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
 	      a <<= 4;
 	    }
-#ifdef DEBUG
 	    assert(s->tx > 31 || a == ((line_h1 >> (s->tx - 5)) & 0x010));
-#endif
             ctx = (((line_h2 >> (bitcount+2)) & 0x3e0) | a | (line_h1 & 0x00f));
 	  } else {
 	    ctx = (((line_h2 >> (bitcount+2)) & 0x3f0) | (line_h1 & 0x00f));
@@ -880,9 +874,7 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
 	      a = (hp1[o >> 3] >> (7 - (o & 7))) & 1;
 	      a <<= 2;
 	    }
-#ifdef DEBUG
 	    assert(s->tx > 31 || a == ((line_h1 >> (s->tx - 3)) & 0x004));
-#endif
             ctx = (((line_h3 >>  bitcount) & 0x380) | ((line_h2h3 >> bitcount) & 0x078) | a | (line_h1 & 0x003));
 	  }
 	  else
@@ -894,9 +886,7 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
 	  st = s_st + ctx;
 	  ctx_old = ctx;
 	  ss = *st;// &0x7f;
-#ifdef DEBUG
 	  assert((ss & 0x7f) < 113);
-#endif
 	  lsz = lsztab[ss];
 	}
 	/* renormalization */
