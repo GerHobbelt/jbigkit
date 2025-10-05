@@ -193,7 +193,7 @@ void jbg85_enc_lineout(struct jbg85_enc_state *s, unsigned char *line,
   unsigned long cmin, cmax, clmin, clmax;
   int tmax;
   unsigned int lsz, ss, bitnum;
-  unsigned char *st, ss_new;
+  unsigned char *st = NULL, ss_new;
   long temp;
   // local copy of struct variables to allow compiler to optimize better
   unsigned int s_c, s_ct, s_sc;
@@ -710,7 +710,7 @@ static size_t decode_pscd(struct jbg85_dec_state *s, unsigned char *data,
   const unsigned int s_x0 = s->x0;
   unsigned int lsz = 0;
   unsigned int ss = 0;
-  unsigned char *st;
+  unsigned char *st = NULL;
   unsigned int line_h2h3;
   int s_ct;
   unsigned char *s_st, *s_pscd_ptr, *s_pscd_end;
