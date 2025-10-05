@@ -363,11 +363,8 @@ static void jbg_buf_output(struct jbg_buf **head,
  */
 unsigned long jbg_ceil_half(unsigned long x, int n)
 {
-  unsigned long mask;
-
   assert(n >= 0 && n < 32);
-  mask = (1UL << n) - 1;     /* the lowest n bits are 1 here */
-  return (x >> n) + ((mask & x) != 0);
+  return (x >> n) + ((x << (sizeof(x) * 8 - n)) != 0);
 }
 
 
@@ -1724,11 +1721,11 @@ static void output_sde(struct jbg_enc_state *s,
  */
 void jbg_int2dppriv(unsigned char *dptable, const char *internal)
 {
+  static const int trans0[ 8] = { 1, 0, 3, 2, 7, 6, 5, 4 };
+  static const int trans1[ 9] = { 1, 0, 3, 2, 8, 7, 6, 5, 4 };
+  static const int trans2[11] = { 1, 0, 3, 2, 10, 9, 8, 7, 6, 5, 4 };
+  static const int trans3[12] = { 1, 0, 3, 2, 11, 10, 9, 8, 7, 6, 5, 4 };
   int i, j, k;
-  int trans0[ 8] = { 1, 0, 3, 2, 7, 6, 5, 4 };
-  int trans1[ 9] = { 1, 0, 3, 2, 8, 7, 6, 5, 4 };
-  int trans2[11] = { 1, 0, 3, 2, 10, 9, 8, 7, 6, 5, 4 };
-  int trans3[12] = { 1, 0, 3, 2, 11, 10, 9, 8, 7, 6, 5, 4 };
 
   for (i = 0; i < 1728; dptable[i++] = 0) ;
 
@@ -1757,11 +1754,11 @@ void jbg_int2dppriv(unsigned char *dptable, const char *internal)
  */
 void jbg_dppriv2int(char *internal, const unsigned char *dptable)
 {
+  static const int trans0[ 8] = { 1, 0, 3, 2, 7, 6, 5, 4 };
+  static const int trans1[ 9] = { 1, 0, 3, 2, 8, 7, 6, 5, 4 };
+  static const int trans2[11] = { 1, 0, 3, 2, 10, 9, 8, 7, 6, 5, 4 };
+  static const int trans3[12] = { 1, 0, 3, 2, 11, 10, 9, 8, 7, 6, 5, 4 };
   int i, j, k;
-  int trans0[ 8] = { 1, 0, 3, 2, 7, 6, 5, 4 };
-  int trans1[ 9] = { 1, 0, 3, 2, 8, 7, 6, 5, 4 };
-  int trans2[11] = { 1, 0, 3, 2, 10, 9, 8, 7, 6, 5, 4 };
-  int trans3[12] = { 1, 0, 3, 2, 11, 10, 9, 8, 7, 6, 5, 4 };
 
 #define FILL_TABLE2(offset, len, trans) \
   for (i = 0; i < len; i++) { \
