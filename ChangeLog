@@ -8,6 +8,15 @@ Add autotools files configure.ac and Makefile.am to JBIG-KIT
 which originally comes with bare-bones Makefile to generate
 static libraries only.
 
+Changes in upcoming version (TBA)
+
+  - The jbig.c decoder will now, by default, return JBG_ENOMEM if the
+    final image layer would occupy more than two gigabytes. Users can
+    adjust this limit by changing sd->maxmem right after having called
+    jbg_dec_init(&sd). This is to reduce the risk of denial-of-service
+    attacks through excessive image dimensions (e.g., CVE-2017-9937).
+
+  - minor bug fixes and documentation clarifications
 
 Changes in version 2.1 (2014-04-08)
 
@@ -45,7 +54,8 @@ Main new features of release 2.0:
     uncompressed image to reside in memory at any time. This 3-line
     buffer has to be allocated by the calling application, therefore
     the T.85 library will not call any heap management functions such
-    as malloc() or free() itself.
+    as malloc() or free() itself. It can fully deal with endless-paper
+    fax, where the height of the encoded image is not known initially.
 
   - There are also two new example applications pbmtojbg85 and
     jbgtopbm85 included that provide command-line access to the new
