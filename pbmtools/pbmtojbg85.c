@@ -10,8 +10,13 @@
 #include <string.h>
 #include <limits.h>
 #include "jbig85.h"
-#ifdef __OS2__
+#if defined(__OS2__) || defined(_WIN32)
 #include <fcntl.h>
+#if defined(_WIN32)
+#include <io.h>
+#define setmode(handle, mode)		_setmode(handle, mode)
+#define O_BINARY					_O_BINARY
+#endif
 #endif
 
 static const char *progname = NULL;                  /* global pointer to argv[0] */
@@ -181,7 +186,7 @@ int main (int argc, const char **argv)
   } else
     fnin  = "<stdin>";
 
-#ifdef __OS2__
+#if defined(__OS2__) || defined(_WIN32)
   if (fin == stdin)
     setmode(fileno(stdin), O_BINARY);
   if (fout == stdout)
