@@ -3,12 +3,14 @@
 .DELETE_ON_ERROR:
 
 # Select an ANSI/ISO C compiler here, e.g. GNU gcc is recommended
-CC = gcc
+CC ?= gcc
 
 # Options for the compiler
-CFLAGS = -g -O -W -Wall -Wno-unused-result -ansi -pedantic # --coverage
-CPPFLAGS = -I../libjbig
-LDFLAGS = -L../libjbig
+CFLAGS ?= -g -O -W -Wall -Wno-unused-result -ansi -pedantic # --coverage
+CPPFLAGS += -I../libjbig
+LDFLAGS += -L../libjbig
+
+_LIBRARY_PATH := $(if $(LD_LIBRARY_PATH),$(LD_LIBRARY_PATH):)../libjbig
 
 .PHONY: txt pdf test test82 test85 clean
 
